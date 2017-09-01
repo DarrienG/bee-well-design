@@ -1,19 +1,20 @@
 // (in millimeters)
-sideWidth = 200; 
+sideWidth = 150; 
 baseHeight = 20;
 reservoirDepth = 5;
 reservoirOffset = baseHeight - reservoirDepth;
-reservoirWidth = 10;
+reservoirWidth = 6;
 // hexagon computations
 diameter = 2 * sideWidth;
 minimalRadius = cos(30) * sideWidth;
-perimeter = 6 * sideWidth;
+numSides =  6;
+perimeter = numSides * sideWidth;
 area = (minimalRadius * perimeter) / 2;
 
 // Draw
 difference() {
 linear_extrude(height = baseHeight, convexity = 10, twist = 0)
-    rotate(180) translate([0,0]) polygonWithArea(6, sideWidth);
+    translate([0,0]) polygonWithArea(numSides, sideWidth);
     createTiles(reservoirWidth, 1, minimalRadius);
 }
 
@@ -28,24 +29,28 @@ function ngon(num, r) =
 
 // reservoirs
 module reservoir(x, y) {
-    translate([x, y, reservoirOffset]) linear_extrude(height = baseHeight, convexity = 10, twist = 0) polygonWithArea(6, reservoirWidth);
+    translate([x, y, reservoirOffset]) linear_extrude(height = baseHeight, convexity = 10, twist = 0) polygonWithArea(numSides, reservoirWidth);
 }
   
 // Creates tiled set of shapes over a parent 
 module createTiles(childCircumradius, childPadding, parentInRadius) {
     distBetween = childCircumradius * 2 + childPadding * 2;
-    numTilesY = parentInRadius / distBetween;
-    echo("These are my vals: ", numTilesY, distBetween);
+    numTilesY = parentInRadius / distBetween - 1;
     for (multiplier = [0:1:numTilesY]) {
         for (xVal = [0:distBetween:computeXDist(parentInRadius, distBetween * multiplier)]) {
-            reservoir(xVal, distBetween * multiplier);
-            reservoir(xVal, -distBetween * multiplier);
-            reservoir(-xVal, distBetween * multiplier);  
-            reservoir(-xVal, -distBetween * multiplier);
+            if ((computeXDist(parentInRadius, distBetween * multiplier) - xVal) >= distBetween) {
+                reservoir(xVal, distBetween * multiplier);
+                reservoir(xVal, -distBetween * multiplier);
+                reservoir(-xVal, distBetween * multiplier);  
+                reservoir(-xVal, -distBetween * multiplier);   
+            }
         }
     }
 }
 
+// Compute total distance from center of circle up `offset` units to the edge
+// @param objectRadius Radius of parent object
+// @param offset Units y from the origin
 function computeXDist(objectRadius, offset) = computeChordDistance(objectRadius, offset) / 2;
 
 // Calculate the distance from a point on the circle (offset by x or y) to the edge of the given circle * 2. 
