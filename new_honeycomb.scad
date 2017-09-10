@@ -3,7 +3,7 @@ sideWidth = 150;
 baseHeight = 20;
 reservoirDepth = 5;
 reservoirOffset = baseHeight - reservoirDepth;
-reservoirWidth = 6;
+reservoirWidth = 10;
 // hexagon computations
 diameter = 2 * sideWidth;
 minimalRadius = cos(30) * sideWidth;
@@ -15,7 +15,7 @@ area = (minimalRadius * perimeter) / 2;
 difference() {
 linear_extrude(height = baseHeight, convexity = 10, twist = 0)
     translate([0,0]) polygonWithArea(numSides, sideWidth);
-    createTiles(reservoirWidth, 1, minimalRadius);
+    createTiles(reservoirWidth, 1, sideWidth, minimalRadius);
 }
 
 // One shape with corresponding text
@@ -33,17 +33,15 @@ module reservoir(x, y) {
 }
   
 // Creates tiled set of shapes over a parent 
-module createTiles(childCircumradius, childPadding, parentInRadius) {
+module createTiles(childCircumradius, childPadding, parentRadius, parentMinimalRadius) {
     distBetween = childCircumradius * 2 + childPadding * 2;
-    numTilesY = parentInRadius / distBetween - 1;
+    numTilesY = parentMinimalRadius / distBetween - .5;
     for (multiplier = [0:1:numTilesY]) {
-        for (xVal = [0:distBetween:computeXDist(parentInRadius, distBetween * multiplier)]) {
-            if ((computeXDist(parentInRadius, distBetween * multiplier) - xVal) >= distBetween) {
-                reservoir(xVal, distBetween * multiplier);
-                reservoir(xVal, -distBetween * multiplier);
-                reservoir(-xVal, distBetween * multiplier);  
-                reservoir(-xVal, -distBetween * multiplier);   
-            }
+        for (xVal = [0:distBetween:computeXDistHex(parentRadius, distBetween * multiplier + distBetween)]) {
+            reservoir(xVal, distBetween * multiplier);
+            reservoir(xVal, -distBetween * multiplier);
+            reservoir(-xVal, distBetween * multiplier);
+            reservoir(-xVal, -distBetween * multiplier);
         }
     }
 }
@@ -51,10 +49,9 @@ module createTiles(childCircumradius, childPadding, parentInRadius) {
 // Compute total distance from center of circle up `offset` units to the edge
 // @param objectRadius Radius of parent object
 // @param offset Units y from the origin
-function computeXDist(objectRadius, offset) = computeChordDistance(objectRadius, offset) / 2;
+function computeXDistHex(objectRadius, offset) = objectRadius - tan(30) * offset;
 
 // Calculate the distance from a point on the circle (offset by x or y) to the edge of the given circle * 2. 
-// See: https://www.ajdesigner.com/phpcircle/circle_arc_length_theta.php
 // @param objectRadius Radius of parent object
 // @param offset Distance from origin. Either x or y, but not both.
 function computeChordDistance(objectRadius, offset) = 2 * sqrt(pow(objectRadius, 2) - pow(offset, 2));
